@@ -1,0 +1,9 @@
+version: '3.4'
+services:
+    
+  github_bot:
+    build:
+      context: .
+    environment:
+      - GITHUB_TOKEN
+      - TZ
