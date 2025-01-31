@@ -165,7 +165,7 @@ async function run(){
 		// Create Issue
 		const issue_id = await create_issue({
 			date: date_now, 
-			title:`Check if time is accruate - ${date_now}`,
+			title:`Check if time is accurate - ${date_now}`,
 			body:`Please check if the time in \`time_now.txt\` 
 				file is synchronized with world clocks ${date_now} and 
 				if there are any other issues in the repo.`
