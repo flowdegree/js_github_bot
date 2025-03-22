@@ -1,0 +1,28 @@
+{
+  "name": "@flowdegree/github_bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "@octokit/rest": "^19.0.11",
+    "cronstrue": "^2.27.0",
+    "dotenv": "^16.4.7",
+    "js-base64": "^3.7.2",
+    "node-cron": "^3.0.0"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsup src/index.ts",
+    "simple-test": "tsx src/test/test.ts"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^22.13.11",
+    "@types/node-cron": "^3.0.11",
+    "tsup": "^8.4.0",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  }
+}

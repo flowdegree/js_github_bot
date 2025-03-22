@@ -1,10 +1,9 @@
 version: '3.4'
 services:
-    
+  
   bot:
     container_name: js_github_bot
-    build:
-      context: .
+    image: "ghcr.io/flowdegree/js_github_bot:latest"
     environment:
       - GITHUB_TOKEN
       - TZ

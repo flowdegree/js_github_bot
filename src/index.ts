@@ -1,7 +1,10 @@
-const cron = require('node-cron');
-const cronstrue = require('cronstrue');
-const { Base64 } = require('js-base64');
-const { Octokit } = require("@octokit/rest");
+import cron from 'node-cron';
+import cronstrue from 'cronstrue';
+import { Base64 } from 'js-base64';
+import { Octokit } from "@octokit/rest";
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 /*				# ┌────────────── second (optional)
 				# │ ┌──────────── minute
@@ -12,16 +15,22 @@ const { Octokit } = require("@octokit/rest");
 				# │ │ │ │ │ │
 				# │ │ │ │ │ │
 				# * * * * * *				*/
-const interval = '0 0 */2 * * *';   // every two hours
+const CRON_SCHEDULE = '0 0 */2 * * *';   // every two hours
 const SLEEP_BETWEEN_ACTIONS = 2 * 60 * 1000; // minutes *  seconds *  milliseconds
 const octokit = new Octokit({auth: process.env.GITHUB_TOKEN, userAgent: 'myApp v1.2.3',});
 const constants = {	owner: "mo9a7i", repo: "time_now", branch: 'newest_time'};
 
-const sleep = ms => new Promise(r => setTimeout(r, ms));
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-console.log(`running github bot every ${cronstrue.toString(interval)}`)
+console.log(`running github bot every ${cronstrue.toString(CRON_SCHEDULE)}`)
 
-async function create_issue(data){
+// Add error handling for environment variables
+if (!process.env.GITHUB_TOKEN) {
+	console.error('GITHUB_TOKEN environment variable is not set');
+	process.exit(1);
+}
+
+async function create_issue(data: any){
 	console.log(`creating issue`)
 
 	try {
@@ -37,45 +46,55 @@ async function create_issue(data){
 		
 		return issue_id;
 	} 
-	catch (error) {
-		console.log('error occured at issue creation')
-		throw error;
-		console.error(error);
+	catch (error: any) {
+		console.error('Error creating issue:', error.message);
+		return null;
 	}
 }
 
-async function commit_time(data){
+async function commit_time(data: any){
 	console.log(`committing the new time`)
-	try {
-		const path = `README.md`;
+	const MAX_RETRIES = 3;
+	
+	for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+		try {
+			const path = `README.md`;
 
-		let result = await octokit.repos.getContent({
-			...constants,
-			ref: 'newest_time',
-			path,
-		});
-		
-		const sha = result?.data?.sha;
-		const content = Base64.decode(result.data.content);
-		const new_content = content.replace(/\(\(.*\)\)/g, `(( ${data.date} ))`);
-		const encoded = Base64.encode(new_content);
+			let get_result: any = await octokit.repos.getContent({
+				...constants,
+				ref: 'newest_time',
+				path,
+			});
+			
+			const sha = get_result.data.sha;
+			const content = Base64.decode(get_result.data.content);
+			const new_content = content.replace(/\(\(.*\)\)/g, `(( ${data.date} ))`);
+			const encoded = Base64.encode(new_content);
 
-		result = await octokit.repos.createOrUpdateFileContents({
-			...constants,
-			path,
-			message: data.message,
-			branch: data.branch_name,
-			content: encoded,
-			sha,
-		});
-		console.log('commit status', result.status);
-	} 
-	catch (error) {
-		console.error(error.response)
+			const create_result = await octokit.repos.createOrUpdateFileContents({
+				...constants,
+				path,
+				message: data.message,
+				branch: data.branch_name,
+				content: encoded,
+				sha,
+			});
+			console.log('commit status', create_result.status);
+			return create_result;
+		} 
+		catch (error: any) {
+			console.error(`Attempt ${attempt}/${MAX_RETRIES} failed:`, error.message);
+			if (attempt === MAX_RETRIES) {
+				console.error('All retry attempts failed');
+				return null;
+			}
+			// Wait before retrying
+			await sleep(5000 * attempt);
+		}
 	}
 }
 
-async function create_pull(data){
+async function create_pull(data: any){
 	try {	
 		let result = await octokit.pulls.create({
 			...constants,
@@ -87,16 +106,16 @@ async function create_pull(data){
 		console.log(`created pull request # ${result.data.number}`)
 		return result.data.number;
 
-	} catch (error) {
+	} catch (error: any) {
 		if (error.status === 422 && error.response.data.message === 'A pull request already exists for mo9a7i:newest_time.') {
-			console.log('Pull request already exists for branch:', branch_name);
+			console.log('Pull request already exists for branch:', data.branch_name);
 		} else {
 			console.error(error?.response?.data?.errors);
 		}
 	}
 }
 
-async function create_review(data){
+async function create_review(data: any){
 	console.log(`reviewing # ${data.pull_number}`)
 	
 	try {		
@@ -109,12 +128,12 @@ async function create_review(data){
 		console.log('✅ Created Review')
 		return result;	
 	} 
-	catch (error) {
+	catch (error: any) {
 		console.error(error?.response?.data?.errors);
 	}
 }
 
-async function create_merge(pull_number){
+async function create_merge(pull_number: any){
 	console.log(`merging # ${pull_number}`)
 	try {	
 		const result = await octokit.pulls.merge({
@@ -123,12 +142,12 @@ async function create_merge(pull_number){
 		})
 		return result;
 	} 
-	catch (error) {
+	catch (error: any) {
 		console.error(error?.response?.data?.errors);
 	}
 }
 
-async function comment_on_issue(data){
+async function comment_on_issue(data: any){
 	console.log(`commenting on issue # ${data.issue_id}`)
 	try {
 		const result = await octokit.issues.createComment({
@@ -144,7 +163,7 @@ async function comment_on_issue(data){
 	}
 }
 
-async function close_issue(issue_id){
+async function close_issue(issue_id: any){
 	console.log(`closing issue # ${issue_id}`)
 	try {
 		const result = await octokit.issues.update({
@@ -160,7 +179,7 @@ async function close_issue(issue_id){
 
 async function run(){
 	try {
-		const date_now = Date.now();
+		const date_now = new Date().toISOString();
 		
 		// Create Issue
 		const issue_id = await create_issue({
@@ -174,7 +193,7 @@ async function run(){
 		await sleep(SLEEP_BETWEEN_ACTIONS);
 
 		// update the time
-		await commit_time({
+		const create_result = await commit_time({
 			date: date_now, 
 			message: `Update time to "${date_now}"`, 
 			branch_name: constants.branch
@@ -210,13 +229,20 @@ async function run(){
 
 		await close_issue(issue_id);
 	} 
-	catch (error) {
-		console.error(error);
+	catch (error: any) {
+		console.error('Error in run process:', error.message);
 	}
 }
 
-cron.schedule(interval, async () => {
+cron.schedule(CRON_SCHEDULE, async () => {
 	await run();
 });
 
 run();
+
+// Add graceful shutdown
+process.on('SIGTERM', () => {
+	console.log('SIGTERM received, shutting down gracefully');
+	// Clean up resources if needed
+	process.exit(0);
+});
