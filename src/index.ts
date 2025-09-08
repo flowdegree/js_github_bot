@@ -15,8 +15,8 @@ dotenv.config();
 				# │ │ │ │ │ │
 				# │ │ │ │ │ │
 				# * * * * * *				*/
-const CRON_SCHEDULE = '0 0 */2 * * *';   // every two hours
-const SLEEP_BETWEEN_ACTIONS = 2 * 60 * 1000; // minutes *  seconds *  milliseconds
+const CRON_SCHEDULE = '*/15 * * * *';   // every 15 minutes
+const SLEEP_BETWEEN_ACTIONS = 1 * 1 * 1000; // minutes *  seconds *  milliseconds
 const octokit = new Octokit({auth: process.env.GITHUB_TOKEN, userAgent: 'myApp v1.2.3',});
 const constants = {	owner: "mo9a7i", repo: "time_now", branch: 'newest_time'};
 
